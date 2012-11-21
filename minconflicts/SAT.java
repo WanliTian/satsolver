@@ -52,7 +52,8 @@ public class SAT {
         {
         	// sanity check is false
         }
-        if(result){
+        boolean crosscheck = CheckResult(assignments, null); 
+        if(result && crosscheck){
             System.out.println("s Satisfiable");
             int value = 0;
             System.out.print("v");
@@ -335,31 +336,7 @@ public class SAT {
     
     public static void main(String args[])
     {
-        String filename="C:\\Users\\user\\Documents\\NetBeansProjects\\SAT\\case\\";
-//        for(int i =10;i<=30;i++){
-//            SATMinConflicts satMinConflicts = new SATMinConflicts("Bart\\bart"+i+".shuffled.cnf");
-//        }
-//        for(int i =6;i<=20;i++){
-//            System.out.println();
-//            filename = (i<10)?"Homer\\homer0"+i+".shuffled.cnf":"Homer\\homer"+i+".shuffled.cnf";
-//            SATMinConflicts satMinConflicts = new SATMinConflicts(filename);
-//        }
-//        for(int i =6;i<=6;i++){
-//            System.out.println();
-////            filename += (i<10)?"Lisa\\homer0"+i+".shuffled.cnf":"Lisa\\homer"+i+".shuffled.cnf";
-//            filename +="Lisa\\lisa19_0_a.shuffled.cnf";
-//            SATMinConflicts satMinConflicts = new SATMinConflicts(filename);
-//        }
-        String names[] = {"ca002","ca004","ca008","ca016","ca032","ca064","ca128","ca256"};
-        printTime();
-        for (int i = 0; i < names.length-1; i++) {
-        	String temp = filename +"biere\\cmpadd\\"+names[i]+".shuffled.cnf";
-        	System.out.println(temp);
-            SAT satMinConflicts = new SAT(temp);
-            printTime();
-		}
-//        String temp = filename + "test1a.cnf";
-//        SAT satMinConflicts = new SAT(temp);
+        
     }
     
 }
