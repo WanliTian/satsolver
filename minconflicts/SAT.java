@@ -10,6 +10,7 @@ import java.io.DataInputStream;
 import java.io.FileInputStream;
 import java.io.InputStreamReader;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Vector;
 
@@ -20,6 +21,10 @@ import java.util.Vector;
 public class SAT {
     
     int NO_VALUE = -1;
+    int NO_MORE_MOVES = -1;
+    int CONFLICT_DETECTED = -2;
+    int CHANGE = 1;
+    int NO_CHANGE = 0;
     
     int _numberOfVariables = 0 , _numberOfClauses = 0;
     int domain[] = {1,0};
@@ -28,18 +33,20 @@ public class SAT {
     boolean hardAssignment[];
     CSP csp;
     
+    HashMap<String, Integer> collision;
+    
     public SAT(String filename)
     {
         System.out.println("Min Conflicts");
+        collision = new HashMap<String,Integer>();
         csp = generateConstraints(filename);
-        assignments = new int[_numberOfVariables];
-        occurences = new int[_numberOfVariables];
-        hardAssignment = new boolean[_numberOfVariables];
         boolean sanity_check=true,result = false;
         sanity_check = preprocessing();
         long min_steps = _numberOfClauses+_numberOfVariables;
 //        long max_steps = (long)(_numberOfVariables*Math.sqrt(_numberOfClauses));
-        long max_steps = (long)(min_steps*0.16*Math.sqrt(_numberOfClauses));
+//        long max_steps = (long)(min_steps*0.16*Math.sqrt(_numberOfClauses));
+        long max_steps = (long)(min_steps*Math.sqrt(min_steps));
+        System.out.println(_numberOfVariables+" "+_numberOfClauses+" "+max_steps);
         max_steps = (max_steps<min_steps?min_steps:max_steps);
         System.out.println("Preprocessing Done.");
         
@@ -70,14 +77,14 @@ public class SAT {
         }
     }
     
-    public void reduce(Clause clauses[],int index,int value)
+    public Clause[] reduce(Clause clauses[],int index,int value)
     {
     	Vector v = new Vector();
     	value = (index+1)*(value==1?1:-1);
     	for (int i = 0; i < clauses.length; i++) {
 			Clause clause = clauses[i];
 			boolean found = false,negationFound = false;
-			Vector vars = new Vector<>();
+			Vector vars = new Vector();
 			for (int j = 0; j < clause.variable.length; j++) {
 				Variable var = clause.variable[j];
 				if(var.key == value)
@@ -117,6 +124,7 @@ public class SAT {
     	{
     		clauses[innerIndex] = (Clause)v.get(innerIndex);
     	}
+    	return clauses;
     }
     
     public void initial_assignment()
@@ -126,16 +134,22 @@ public class SAT {
 			occurences[i]=0;
 			hardAssignment[i]=false;
 		}
-    	
-    	
     	for (int i = 0; i < clauses.length; i++) {
 			Clause clause = clauses[i];
 			for (int j = 0; j < clause.variable.length; j++) {
 				int var = clause.variable[j].key;
 				if(hardAssignment[abs(var)-1]) continue;
 				occurences[abs(var)-1] += (var>0)?1:-1;
-				assignments[abs(var)-1] = (occurences[abs(var)-1]>=0)?1:0; // initial assignment
-				if(clause.variable.length==1) hardAssignment[abs(var)-1]=true; 
+				if(clause.variable.length==1)
+				{
+					hardAssignment[abs(var)-1]=true;
+					assignments[abs(var)-1] = (var>0)?1:0;
+				}
+				else
+				{
+					assignments[abs(var)-1] = (occurences[abs(var)-1]>=0)?1:0; // initial assignment
+				}
+				
 			}
 			
 		}
@@ -143,11 +157,23 @@ public class SAT {
     public boolean preprocessing()
     {
     	initial_assignment();
-//        return optimization1();
-    	return true;
+    	boolean result = true;
+//    	while(result)
+//    	{
+//    		int change=optimization2();
+//    		if(optimization1()==NO_MORE_MOVES && change == NO_CHANGE)
+//    		{
+//    			return true;
+//    		}
+//    		else if(optimization1()==CONFLICT_DETECTED)
+//    		{
+//    			return false;
+//    		}
+//    	}
+    	return result;
     }
     
-    public boolean optimization1()
+    public int optimization1()
     {
     	
     	boolean secondClause = true;
@@ -165,27 +191,28 @@ public class SAT {
 	                int key = constraint.variable[0].key;
 	                int assignment = (key>0)?1:0;
 	                int index = abs(key)-1;
-	                boolean hardresult = hardAssignment[index];
 	                if (hardAssignment[index] && assignments[index]!=assignment) {
-	                	return false; // both u and ~u are present
+	                	if(hardAssignment[index]) return CONFLICT_DETECTED; // both u and ~u are present
 					}
-	                assignments[index] = assignment ;
-	                hardAssignment[index]=true;
-	                reduce(clauses,index,assignment);
+	                clauses = reduce(clauses,index,assignment);
 	                secondClause = true;
+	                break;
+	            }else if(constraint.variable.length==0) 
+	            {
+	            	return CONFLICT_DETECTED;
 	            }
 	        }
-	        optimization2();
+	        csp.constraints = clauses;
         }
-        csp.constraints = clauses;
         _numberOfClauses = clauses.length;
-        return true;
+        return NO_MORE_MOVES;
     }
     
-    public void optimization2()
+    public int optimization2()
     {
     	Clause originalclauses[] = csp.constraints;
     	int length = originalclauses.length;
+    	boolean change = false;
     	for (int index = 0 ; index<length; index++) {
     		Clause constraint = originalclauses[index];
     		boolean firstpair = true;
@@ -215,17 +242,22 @@ public class SAT {
                 		int varkey = innerclause.variable[varIndex].key;
                 		if(varkey==key2)
                 		{
-                			originalclauses[index].variable[varIndex].key = -key1;
+                			originalclauses[index].variable[varIndex].key = key1;
+                			change = true;
                 		}
                 		else if(varkey==-key2)
                 		{
                 			originalclauses[index].variable[varIndex].key = -key1;
+                			change=true;
                 		}
+                		
                 	}
                 }
             }
         }
     	csp.constraints =originalclauses;
+    	if(change) return CHANGE;
+    	return NO_CHANGE;
     }
     
     
@@ -254,13 +286,14 @@ public class SAT {
         
         for(long index=0 ; index<max_steps;index++)
         {
+        	
             initializeConflicts(conflicts);
             boolean result = CheckResult(assignments, conflicts);
             if(result==true)
             {
                 return true;
              }
-//            if(index%500==0) System.out.println(index);
+            if(index%500==0) System.out.println(index);
             int key = maxconflicts(conflicts);
             int val = assignments[key] ;
             val = (val+1)%2;
@@ -386,6 +419,9 @@ public class SAT {
                         String temp[] = line.split(" ");
                         _numberOfVariables = Integer.parseInt(temp[2]);
                         _numberOfClauses = Integer.parseInt(temp[3]);
+                        assignments = new int[_numberOfVariables];
+                        occurences = new int[_numberOfVariables];
+                        hardAssignment = new boolean[_numberOfVariables];
                         break;
                     default:
                         clauses.add(line);
