@@ -24,6 +24,7 @@ public class SAT {
     int _numberOfVariables = 0 , _numberOfClauses = 0;
     int domain[] = {1,0};
     int assignments[] ;
+    int occurences[];
     boolean hardAssignment[];
     CSP csp;
     
@@ -32,18 +33,16 @@ public class SAT {
         System.out.println("Min Conflicts");
         csp = generateConstraints(filename);
         assignments = new int[_numberOfVariables];
+        occurences = new int[_numberOfVariables];
         hardAssignment = new boolean[_numberOfVariables];
-        for (int i = 0; i < _numberOfVariables; i++) {
-            assignments[i] = 1; // initial assignment
-            hardAssignment[i] = false;
-        }
+        boolean sanity_check=true,result = false;
+        sanity_check = preprocessing();
         long min_steps = _numberOfClauses+_numberOfVariables;
 //        long max_steps = (long)(_numberOfVariables*Math.sqrt(_numberOfClauses));
         long max_steps = (long)(min_steps*0.16*Math.sqrt(_numberOfClauses));
         max_steps = (max_steps<min_steps?min_steps:max_steps);
-        boolean sanity_check = preprocessing();
         System.out.println("Preprocessing Done.");
-        boolean result = false;
+        
         if(sanity_check)
         {
         	result = min_conflicts(max_steps);
@@ -52,8 +51,8 @@ public class SAT {
         {
         	// sanity check is false
         }
-        boolean crosscheck = CheckResult(assignments, null); 
-        if(result && crosscheck){
+//        boolean crosscheck  =; 
+        if(result &&  CheckResult(assignments, null)){
             System.out.println("s Satisfiable");
             int value = 0;
             System.out.print("v");
@@ -70,6 +69,7 @@ public class SAT {
             System.out.println("Unsatisfiable");
         }
     }
+    
     public void reduce(Clause clauses[],int index,int value)
     {
     	Vector v = new Vector();
@@ -118,57 +118,133 @@ public class SAT {
     		clauses[innerIndex] = (Clause)v.get(innerIndex);
     	}
     }
+    
+    public void initial_assignment()
+    {
+    	Clause clauses[] = csp.constraints;
+    	for (int i = 0; i < _numberOfVariables; i++) {
+			occurences[i]=0;
+			hardAssignment[i]=false;
+		}
+    	
+    	
+    	for (int i = 0; i < clauses.length; i++) {
+			Clause clause = clauses[i];
+			for (int j = 0; j < clause.variable.length; j++) {
+				int var = clause.variable[j].key;
+				if(hardAssignment[abs(var)-1]) continue;
+				occurences[abs(var)-1] += (var>0)?1:-1;
+				assignments[abs(var)-1] = (occurences[abs(var)-1]>=0)?1:0; // initial assignment
+				if(clause.variable.length==1) hardAssignment[abs(var)-1]=true; 
+			}
+			
+		}
+    }
     public boolean preprocessing()
     {
-        boolean secondClause = false;
-        
+    	initial_assignment();
+//        return optimization1();
+    	return true;
+    }
+    
+    public boolean optimization1()
+    {
+    	
+    	boolean secondClause = true;
+        Clause clauses[] = csp.constraints;
         //optimization 1 .
         // Unit propogation assigned hard values
         // say u and another clause containing u|a . Can remove the clause u|a as u is already 1
         // can remove the clause u from the list of clauses as u can only take 1 and is already assigned
-        Clause clauses[] = csp.constraints;
-        for (Clause constraint : csp.constraints) {
-            if(constraint.variable.length == 1 && clauses.length!=0)
-            {
-                int key = constraint.variable[0].key;
-                int assignment = (key>0)?1:0;
-                int index = abs(key)-1;
-                boolean hardresult = hardAssignment[index];
-                if (hardAssignment[index] && assignments[index]!=assignment) {
-                	return false; // both u and ~u are present
-				}
-                assignments[index] = assignment ;
-                hardAssignment[index]=true;
-                reduce(clauses,index,assignment);
-                secondClause = true;
-            }
+        while(secondClause)
+        {
+        	secondClause = false;
+	        for (Clause constraint : csp.constraints) {
+	            if(constraint.variable.length == 1 && clauses.length!=0)
+	            {
+	                int key = constraint.variable[0].key;
+	                int assignment = (key>0)?1:0;
+	                int index = abs(key)-1;
+	                boolean hardresult = hardAssignment[index];
+	                if (hardAssignment[index] && assignments[index]!=assignment) {
+	                	return false; // both u and ~u are present
+					}
+	                assignments[index] = assignment ;
+	                hardAssignment[index]=true;
+	                reduce(clauses,index,assignment);
+	                secondClause = true;
+	            }
+	        }
+	        optimization2();
         }
-        
         csp.constraints = clauses;
         _numberOfClauses = clauses.length;
-        
-        if(secondClause){
-        for (Clause constraint : csp.constraints) {
-            if(constraint.variable.length == 2)
+        return true;
+    }
+    
+    public void optimization2()
+    {
+    	Clause originalclauses[] = csp.constraints;
+    	int length = originalclauses.length;
+    	for (int index = 0 ; index<length; index++) {
+    		Clause constraint = originalclauses[index];
+    		boolean firstpair = true;
+    		int key1=0,key2=0;
+            if(firstpair && constraint.variable.length == 2)
             {
-                int key1 = constraint.variable[0].key;
-                int key2 = constraint.variable[1].key;
-                int val1 = assignments[abs(key1)-1];
-                int val2 = assignments[abs(key2)-1];
-                if(hardAssignment[abs(key1)-1] && !hardAssignment[abs(key2)-1])
-                {
-                    assignments[abs(key2)-1] = (key2>0)?1:0;
-                    hardAssignment[abs(key2)-1] = true;
+            	// u1 and ~u2
+                key1 = constraint.variable[0].key;
+                key2 = constraint.variable[1].key;
+                if((key1>0 && key2<0) ||
+                	(key1<0 && key2>0)){
+                firstpair = false;
                 }
-                else if(!hardAssignment[abs(key1)-1] && hardAssignment[abs(key2)-1])
+            }
+            else if(constraint.variable.length == 2)
+            {
+            	int key = (key1>0)?key1:key2;
+                if(!checkIfOptimization2Possible(constraint,key1,key2)) continue;
+            	//replace all u2 with u1 and ~u2 with u1~ 
+            	for(int innerIndex = 0 ; innerIndex < length ; innerIndex++)
                 {
-                    assignments[abs(key1)-1] = (key1>0)?1:0;
-                    hardAssignment[abs(key1)-1] = true;
+                	Clause innerclause = originalclauses[index];
+                	int iClauseLength = innerclause.variable.length;
+                	if(checkIfOptimization2Possible(constraint, key1, key2)) continue;
+                	for(int varIndex = 0 ; varIndex < iClauseLength ; varIndex++)
+                	{
+                		int varkey = innerclause.variable[varIndex].key;
+                		if(varkey==key2)
+                		{
+                			originalclauses[index].variable[varIndex].key = -key1;
+                		}
+                		else if(varkey==-key2)
+                		{
+                			originalclauses[index].variable[varIndex].key = -key1;
+                		}
+                	}
                 }
             }
         }
-        }
-        return true;
+    	csp.constraints =originalclauses;
+    }
+    
+    
+    public boolean checkIfOptimization2Possible(Clause constraint,int key1a,int key1b)
+    {
+    	// checking if two constraints are 
+    	// 1. u1 and ~u2
+    	// 2. ~u1 and u2
+    	int key2a = constraint.variable[0].key;
+    	int key2b = constraint.variable[1].key;
+    	if((key1a==-key2a) && (key1b==-key2b))
+    	{
+    		return true;
+    	}
+    	else if((key1a==-key2b) && (key1b==-key2a))
+    	{
+    		return true;
+    	}
+    	return false;
     }
     
     public boolean min_conflicts(long max_steps)
@@ -346,7 +422,7 @@ public class SAT {
 class Variable
 {
     int key;
-    int currentValue=-1;
+    int referencedKey=-1;
 }
 
 class CSP
