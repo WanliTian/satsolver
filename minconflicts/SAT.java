@@ -9,6 +9,7 @@ import java.io.BufferedReader;
 import java.io.DataInputStream;
 import java.io.FileInputStream;
 import java.io.InputStreamReader;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -45,7 +46,7 @@ public class SAT {
         long min_steps = _numberOfClauses+_numberOfVariables;
 //        long max_steps = (long)(_numberOfVariables*Math.sqrt(_numberOfClauses));
 //        long max_steps = (long)(min_steps*0.16*Math.sqrt(_numberOfClauses));
-        long max_steps = (long)(min_steps*Math.sqrt(min_steps));
+        long max_steps = (long)(min_steps*min_steps*2);
         System.out.println(_numberOfVariables+" "+_numberOfClauses+" "+max_steps);
         max_steps = (max_steps<min_steps?min_steps:max_steps);
         System.out.println("Preprocessing Done.");
@@ -286,7 +287,6 @@ public class SAT {
         
         for(long index=0 ; index<max_steps;index++)
         {
-        	
             initializeConflicts(conflicts);
             boolean result = CheckResult(assignments, conflicts);
             if(result==true)
@@ -312,6 +312,24 @@ public class SAT {
             }
         }
         int index = (int)(Math.random()*v.size());
+        String conflict = Arrays.toString(conflicts).replace(", ", " ");
+//        System.out.println(conflict);
+        int arr[] = {1,2,3,4};
+        if(collision.containsKey(conflict) && (collision.get(conflict)==index))
+        {
+        	int start_index=0;
+        	while(collision.containsKey(conflict) && (collision.get(conflict)==start_index))
+        	{
+        		start_index++;
+        	}
+        	index=start_index;
+        	System.out.println(conflict);
+        	System.out.println(index+" "+collision.get(conflict));
+        }
+        else
+        {
+        	collision.put(conflict, index);
+        }
         return (Integer)v.get(index);
     }
     
