@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.PriorityQueue;
 import java.util.Vector;
@@ -23,8 +24,8 @@ public class sat {
     int CONFLICT_DETECTED = -2;
     int CHANGE = 1;
     int NO_CHANGE = 0;
+    int MAX_WEIGHT = 0;
     int SATISFIABLE = 1;
-    
     int UNSATISFIABLE = 2;
     int UNSATISFIABLEuA = 3;
     
@@ -44,6 +45,7 @@ public class sat {
 	    System.out.println("DPLL");
 	    collision = new HashMap<String,Integer>();
 	    csp = generateConstraints(filename);
+	    MAX_WEIGHT = _numberOfClauses*_numberOfVariables;
 	    boolean sanity_check=true,result = false;
     	result = (dpll(csp.constraints)==SATISFIABLE);
 	    if(result){
@@ -116,7 +118,7 @@ public class sat {
 				Clause clause = (Clause) iterator.next();
 				if(clause.variable.size()==0)
 				{
-					d("1");
+//					d("1");
 					return UNSATISFIABLE;
 				}
 				else if(clause.variable.size()==1)
@@ -130,74 +132,151 @@ public class sat {
     	}
     	// Step 2 basic check
     	if(local.size()==0) return SATISFIABLE;
-    	
+//    	System.out.println(local.size());
     	// Step 3: Branch
     	Variable variable = chooseLiteral(local);
+//    	System.out.println(local.size()+" "+variable.key);
     	if(dpll(reduce(source, variable))==SATISFIABLE) return SATISFIABLE;
     	variable.key *=-1;
     	if(dpll(reduce(source, variable))==SATISFIABLE) return SATISFIABLE;
-    	d("2");
+//    	d("2");
     	return UNSATISFIABLE;
     	
     }
     
+    public void assignVariable(Variable variable)
+    {
+    	assignments[abs(variable.key)-1]=(variable.key>0?1:0);
+    }
     public void d(String temp)
     {
     	System.out.println(temp);
     }
     public Variable chooseLiteral(ArrayList<Clause> source)
     {
-    	Comparator<Integer> cmp = new Comparator<Integer>()
-		{
-		    public int compare( Integer x, Integer y )
-		    {
-		        return y - x;
-		    }
-		};
-		
-		PriorityQueue<Integer> weights = new PriorityQueue<Integer>(_numberOfVariables);
-		int positiveCount[] = new int[_numberOfVariables];
-		int negativeCount[] = new int[_numberOfVariables];
-		for(int index=0; index<_numberOfVariables; index++)
-		{
-			positiveCount[index]=0;
-			negativeCount[index]=0;
-		}
-		
-    	for (Clause clause : source) {
-			ArrayList<Variable> vars = clause.variable;
-			for (Variable variable : vars) {
-				int key =variable.key; 
-				if(key>0)
-				{
-					positiveCount[abs(key)-1]+=1;
-				}
-				else
-				{
-					negativeCount[abs(key)-1]+=1;
-				}
-			}
-		}
+    	return chooseDLCS(source);
+//    	return chooseAUPC(source);
+    }
+    
+    public Variable chooseAUPC(ArrayList<Clause> source)
+    {
     	int max_weight = 0;
     	Variable max= new Variable();
-    	for(int index=0; index<_numberOfVariables; index++)
+    	max.key = source.get(0).variable.get(0).key; // choose the first variable available
+    	max_weight = MAX_WEIGHT;
+    	ArrayList<Variable> vars = getVariablesinCSP(source);
+    	int vars_length = vars.size();
+    	int positiveCount[] = new int[_numberOfVariables];
+    	int negativeCount[] = new int[_numberOfVariables];
+		for(int index=0; index<vars_length; index++)
 		{
-    		int pcount = positiveCount[index]+1;
-    		int ncount = negativeCount[index]+1;
-			if(max_weight<(pcount*ncount))
-			{
-				max_weight = pcount*ncount;
-				max.key = (index+1)*((pcount>=ncount)?1:-1);
-			}
+			int trueC = 0 , falseC = 0;
+			// Approximate Unit Propogation Count(AUPC) rule
+	    	for (Clause clause : source) {
+	    		if(clause.variable.size()==2)
+	    		{
+	    			Variable a = clause.variable.get(0);
+	    			Variable b = clause.variable.get(1);
+	    			if(a.key>0)
+	    			{
+	    				negativeCount[abs(a.key)-1]+=1;
+	    			}
+	    			else
+	    			{
+	    				positiveCount[abs(a.key)-1]+=1;
+	    			}
+	    			if(b.key>0)
+	    			{
+	    				negativeCount[abs(a.key)-1]+=1;
+	    			}
+	    			else
+	    			{
+	    				positiveCount[abs(b.key)-1]+=1;
+	    			}
+	    		}
+	    		else
+	    		{
+	    			continue;
+	    		}
+				
+	    	}
 		}
-    	
+		
+		for (int i = 0; i < _numberOfVariables; i++) {
+			int neg = negativeCount[i];
+			int pos = positiveCount[i];
+			if(max_weight>(neg*pos+neg+pos))
+			{
+				max_weight = neg*pos+neg+pos;
+				max.key = (i+1)*(pos>=neg?1:-1);
+			}
+			
+		}
     	return max;
     }
     
+    public Variable chooseDLCS(ArrayList<Clause> source)
+    {
+    	int max_weight = 0;
+    	Variable max= new Variable();
+    	max.key = source.get(0).variable.get(0).key; // choose the first variable available
+    	int positiveCount[] = new int[_numberOfVariables];
+    	int negativeCount[] = new int[_numberOfVariables];
+		for (Clause clause : source) {
+			ArrayList<Variable> vars = clause.variable;
+			for (Variable variable : vars) {
+				int key = variable.key;
+				positiveCount[abs(key)-1]+=(key>0?1:0);
+				negativeCount[abs(key)-1]+=(key<0?1:0);
+			}	
+	    	}
+		
+		for (int i = 0; i < _numberOfVariables; i++) {
+			int neg = negativeCount[i];
+			int pos = positiveCount[i];
+			if(max_weight<=(neg+pos))
+			{
+				max_weight = (neg+pos) ;
+				max.key = (i+1)*(pos>=neg?1:-1);
+			}
+			
+		}
+    	return max;
+    }
+    
+    public ArrayList<Variable> getVariablesinCSP(ArrayList<Clause> source)
+    {
+    	ArrayList<Variable> variables = new ArrayList<Variable>();
+    	HashMap<Integer, Integer> map = new HashMap<Integer,Integer>();
+    	for (Clause clause : source) {
+			for (Variable variable : clause.variable) {
+				if(map.containsKey(abs(variable.key)))
+				{
+					continue;
+				}
+				else
+				{
+					map.put(abs(variable.key), abs(variable.key));
+					variables.add(variable);
+				}
+			}
+		}
+    	return variables;
+    }
+    
+    public ArrayList<Variable> getVariablesInClause(Clause clause)
+    {
+    	ArrayList<Variable> vars = new ArrayList<Variable>();
+    	for (Variable variable : clause.variable) {
+			vars.add(variable);
+		}
+    	return vars;
+    }
     public ArrayList<Clause> reduce(ArrayList<Clause> source,Variable variable)
     {
     	int clause_index = 0 ;
     	ArrayList<Clause> local = copy(source);
+    	assignVariable(variable);
     	for (Clause clause : source) {
 			if((clauseContainsVariable(clause,variable)==VariableInClause))
 			{
@@ -358,10 +437,6 @@ public class sat {
 class Variable
 {
     int key;
-    int referencedKey=-1;
-    boolean checkedbothways = false;
-    int positiveCount = 0;
-    int negativeCount = 0;
 }
 
 class CSP
