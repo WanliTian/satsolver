@@ -154,8 +154,16 @@ public class sat {
     }
     public Variable chooseLiteral(ArrayList<Clause> source)
     {
+//    	return chooseRAND(source);
     	return chooseDLCS(source);
 //    	return chooseAUPC(source);
+    }
+    
+    public Variable chooseRAND(ArrayList<Clause> source)
+    {
+    	ArrayList<Variable> vars = getVariablesinCSP(source);
+    	int index = (int)(Math.random()*vars.size());
+    	return vars.get(index);
     }
     
     public Variable chooseAUPC(ArrayList<Clause> source)
@@ -230,17 +238,25 @@ public class sat {
 				negativeCount[abs(key)-1]+=(key<0?1:0);
 			}	
 	    	}
-		
+		Vector<Integer> keys = new Vector<Integer>();
 		for (int i = 0; i < _numberOfVariables; i++) {
 			int neg = negativeCount[i];
 			int pos = positiveCount[i];
-			if(max_weight<=(neg+pos))
+			if(max_weight<(neg+pos))
 			{
+				keys.clear();
 				max_weight = (neg+pos) ;
 				max.key = (i+1)*(pos>=neg?1:-1);
+				keys.add(max.key);
+			}else if(max_weight==(neg+pos))
+			{
+				max.key = (i+1)*(pos>=neg?1:-1);
+				keys.add(max.key);
 			}
 			
 		}
+		int index = (int)(Math.random()*keys.size());
+    	max.key = keys.get(index);
     	return max;
     }
     
