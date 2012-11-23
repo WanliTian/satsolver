@@ -41,19 +41,11 @@ public class sat {
     
     public sat(String filename)
     {
-	    System.out.println("Min Conflicts");
+	    System.out.println("DPLL");
 	    collision = new HashMap<String,Integer>();
 	    csp = generateConstraints(filename);
 	    boolean sanity_check=true,result = false;
-	    if(sanity_check)
-	    {
-	    	result = (dpll(csp.constraints)==SATISFIABLE);
-	    }
-	    else
-	    {
-	    	// sanity check is false
-	    }
-	//    boolean crosscheck  =; 
+    	result = (dpll(csp.constraints)==SATISFIABLE);
 	    if(result){
 	        System.out.println("s Satisfiable");
 	        int value = 0;
@@ -124,6 +116,7 @@ public class sat {
 				Clause clause = (Clause) iterator.next();
 				if(clause.variable.size()==0)
 				{
+					d("1");
 					return UNSATISFIABLE;
 				}
 				else if(clause.variable.size()==1)
@@ -133,7 +126,6 @@ public class sat {
 					break;
 				}
 			}
-    		
     		if(didChange) local = copy(temp);
     	}
     	// Step 2 basic check
@@ -144,10 +136,15 @@ public class sat {
     	if(dpll(reduce(source, variable))==SATISFIABLE) return SATISFIABLE;
     	variable.key *=-1;
     	if(dpll(reduce(source, variable))==SATISFIABLE) return SATISFIABLE;
+    	d("2");
     	return UNSATISFIABLE;
     	
     }
     
+    public void d(String temp)
+    {
+    	System.out.println(temp);
+    }
     public Variable chooseLiteral(ArrayList<Clause> source)
     {
     	Comparator<Integer> cmp = new Comparator<Integer>()
