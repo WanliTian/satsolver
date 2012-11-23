@@ -4,11 +4,11 @@ import java.io.BufferedReader;
 import java.io.DataInputStream;
 import java.io.FileInputStream;
 import java.io.InputStreamReader;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Vector;
-
 
 public class sat {
 
@@ -20,6 +20,10 @@ public class sat {
     int CONFLICT_DETECTED = -2;
     int CHANGE = 1;
     int NO_CHANGE = 0;
+    
+    int VariableNotInClause = 0; 
+    int VariableInClause = 1;
+    int VariableNegationInClause = 2;
     
     int _numberOfVariables = 0 , _numberOfClauses = 0;
     int domain[] = {1,0};
@@ -52,7 +56,7 @@ public class sat {
 	    	// sanity check is false
 	    }
 	//    boolean crosscheck  =; 
-	    if(result &&  CheckResult(assignments, null)){
+	    if(result){
 	        System.out.println("s Satisfiable");
 	        int value = 0;
 	        System.out.print("v");
@@ -69,44 +73,103 @@ public class sat {
 	        System.out.println("Unsatisfiable");
 	    }
 	}
-	public boolean CheckResult(int assignment[],int conflicts[])
+
+    public ArrayList<Variable> getVariablesinCSP(ArrayList<Clause> source)
     {
-        int global_status = 1;
-        for (Clause constraint : csp.constraints) {
-            global_status&=checkClauseResult(constraint, assignment,conflicts);
-        }
-     return (global_status==1)?true:false;   
+    	ArrayList<Variable> variables = new ArrayList<Variable>();
+    	HashMap<Integer, Integer> map = new HashMap<Integer,Integer>();
+    	for (Clause clause : source) {
+			for (Variable variable : clause.variable) {
+				if(map.containsKey(abs(variable.key)))
+				{
+					continue;
+				}
+				else
+				{
+					map.put(abs(variable.key), abs(variable.key));
+					variables.add(variable);
+				}
+			}
+		}
+    	return variables;
     }
     
-    /**
-     *
-     * @param constraint
-     * @param assignment
-     * @param conflicts
-     * @return
-     */
-    public int checkClauseResult(Clause constraint , int assignment[],int conflicts[])
+    public ArrayList<Variable> getVariablesInClause(Clause clause)
     {
-        int val = 0;
-        Vector possibleConflicts = new Vector(constraint.variable.length);        
-        for(Variable cspvar:constraint.variable)
-        {
-            int key = abs(cspvar.key);
-            int value = assignment[key-1];
-            value = (cspvar.key<0)?(value+1)%2:value;
-            val|=value;
-            if(!hardAssignment[key-1]) possibleConflicts.add(key);
-        }
-        if(val==0)
-        {
-            for (Iterator it = possibleConflicts.iterator(); it.hasNext();) {
-                int key = (Integer)it.next();
-                conflicts[key-1]+=1;     
-            }
-        }
-        return val;
-        
+    	ArrayList<Variable> vars = new ArrayList<Variable>();
+    	for (Variable variable : clause.variable) {
+			vars.add(variable);
+		}
+    	return vars;
     }
+    public ArrayList<Clause> reduce(ArrayList<Clause> source,Variable variable)
+    {
+    	int clause_index = 0 ;
+    	ArrayList<Clause> local = copy(source);
+    	assignVariable(variable);
+    	for (Clause clause : source) {
+			if((clauseContainsVariable(clause,variable)==VariableInClause))
+			{
+				local.remove(clause);
+			}else if((clauseContainsVariable(clause,variable)==VariableNegationInClause))
+			{
+				clause = removeVariableFromClause(clause,variable);
+				local.set(clause_index, clause);
+				clause_index++;
+			}else
+			{
+				//VariableNotInClause
+				clause_index++;
+			}
+			
+		}
+    	return local;
+    }
+    
+    public void assignVariable(Variable variable)
+    {
+    	assignments[abs(variable.key)-1]=(variable.key>0?1:0);
+    }
+    
+    public int clauseContainsVariable(Clause clause,Variable variable)
+    {
+    	int key = variable.key;
+    	int value = abs(key);
+    	for (int i = 0; i < clause.variable.size(); i++) {
+			Variable var = clause.variable.get(i);
+			if(var.key==variable.key) return VariableInClause;
+			else if(var.key==-variable.key) return VariableNegationInClause;
+		}
+    	return VariableNotInClause;
+    	
+    }
+    
+    public Clause removeVariableFromClause(Clause source,Variable variable)
+    {
+    	for (int i = 0; i < source.variable.size(); i++) {
+			Variable var = source.variable.get(i);
+			if(abs(var.key)==(abs(variable.key)))
+			{
+				source.variable.remove(i);
+				break;
+			}
+		}
+    	return source;
+    }
+    public ArrayList<Clause> copy(ArrayList<Clause> source)
+    {
+    	ArrayList<Clause> local = new ArrayList<Clause>(source.size());
+    	for (Iterator iterator = source.iterator(); iterator.hasNext();) {
+			Clause clause = (Clause) iterator.next();
+			local.add(clause);
+		}
+    	return local;
+    }
+    
+//    public Clause[] copy(Clause source[])
+//    {
+//    	
+//    }
     
     public int abs(int value)
     {
@@ -122,23 +185,24 @@ public class sat {
     public CSP generateClauses(Vector<String> clauses)
     {
         CSP csp = new CSP();
-        csp.constraints = new Clause[clauses.size()];
+        csp.constraints = new ArrayList<Clause>(_numberOfClauses);
         int clause_index = 0;
         for (Iterator<String> it = clauses.iterator(); it.hasNext();) {
             String string = it.next();
             String split[] = string.split(" ");
             Clause clause = new Clause();
-            clause.variable = new Variable[split.length-1]; // last 0 is not counted
+            clause.variable = new ArrayList<Variable>(split.length-1); // last 0 is not counted
             int variable_index = 0 ;
             for (String string1 : split) {
                 int value = Integer.parseInt(string1);
                 if(value==0) break;
                 Variable var = new Variable();
                 var.key = value;
-                clause.variable[variable_index] = var;
+//                clause.variable.set(variable_index,var);
+                clause.variable.add(var);
                 variable_index++;
             }
-           csp.constraints[clause_index] = clause;
+           csp.constraints.add(clause);
            clause_index++;
         }
         return csp;
@@ -156,6 +220,8 @@ public class sat {
             Vector<String> clauses = new Vector<String>();
             while((line=br.readLine())!=null)
             {
+            	line=line.trim();
+            	if(line.equals("")) continue;
                 lineNumber++;
                 switch(lineNumber)
                 {
@@ -168,7 +234,6 @@ public class sat {
                         _numberOfClauses = Integer.parseInt(temp[3]);
                         assignments = new int[_numberOfVariables];
                         occurences = new int[_numberOfVariables];
-                        hardAssignment = new boolean[_numberOfVariables];
                         break;
                     default:
                         clauses.add(line);
@@ -184,6 +249,7 @@ public class sat {
             return null;
         }
     }
+    
     
     public static void printTime()
     {
@@ -206,17 +272,16 @@ public class sat {
 class Variable
 {
     int key;
-    int referencedKey=-1;
 }
 
 class CSP
 {
-    Clause constraints[];
+    ArrayList<Clause> constraints;
     boolean global_status = false;
 }
 
 class Clause
 {
-    Variable variable[];
+    ArrayList<Variable> variable;
     boolean local_status = false;
 }

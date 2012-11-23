@@ -36,7 +36,6 @@ public class sat {
     int _numberOfVariables = 0 , _numberOfClauses = 0;
     int domain[] = {1,0};
     int assignments[] ;
-    int occurences[];    
     CSP csp;
     HashMap<String, Integer> collision;
     
@@ -154,6 +153,7 @@ public class sat {
     }
     public Variable chooseLiteral(ArrayList<Clause> source)
     {
+//    	return chooseDLIS(source);
 //    	return chooseRAND(source);
     	return chooseDLCS(source);
 //    	return chooseAUPC(source);
@@ -252,6 +252,53 @@ public class sat {
 			{
 				max.key = (i+1)*(pos>=neg?1:-1);
 				keys.add(max.key);
+			}
+			
+		}
+//		int index = (int)(Math.random()*keys.size());
+//    	max.key = keys.get(index);
+    	return max;
+    }
+    
+    public Variable chooseDLIS(ArrayList<Clause> source)
+    {
+    	int max_weight = 0;
+    	Variable max= new Variable();
+    	max.key = source.get(0).variable.get(0).key; // choose the first variable available
+    	int positiveCount[] = new int[_numberOfVariables];
+    	int negativeCount[] = new int[_numberOfVariables];
+		for (Clause clause : source) {
+			ArrayList<Variable> vars = clause.variable;
+			for (Variable variable : vars) {
+				int key = variable.key;
+				positiveCount[abs(key)-1]+=(key>0?1:0);
+				negativeCount[abs(key)-1]+=(key<0?1:0);
+			}	
+	    	}
+		Vector<Integer> keys = new Vector<Integer>();
+		for (int i = 0; i < _numberOfVariables; i++) {
+			int neg = negativeCount[i];
+			int pos = positiveCount[i];
+			if(max_weight<neg || max_weight<pos)
+			{
+				keys.clear();
+				max_weight = (pos>=neg)?pos:neg ;
+				max.key = (i+1)*(pos>=neg?1:-1);
+				keys.add(max.key);
+				if(pos==neg)
+				{
+					max.key = (i+1)*-1;
+					keys.add(max.key);
+				}
+			}else if(max_weight==neg || max_weight==pos)
+			{
+				max.key = (i+1)*(pos>=neg?1:-1);
+				keys.add(max.key);
+				if(pos==neg)
+				{
+					max.key = (i+1)*-1;
+					keys.add(max.key);
+				}
 			}
 			
 		}
@@ -415,7 +462,6 @@ public class sat {
                         _numberOfVariables = Integer.parseInt(temp[2]);
                         _numberOfClauses = Integer.parseInt(temp[3]);
                         assignments = new int[_numberOfVariables];
-                        occurences = new int[_numberOfVariables];
                         break;
                     default:
                         clauses.add(line);

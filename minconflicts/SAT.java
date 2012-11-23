@@ -34,12 +34,12 @@ public class SAT {
     boolean hardAssignment[];
     CSP csp;
     
-    HashMap<String, Integer> collision;
+    HashMap<String, Vector<Integer>> collision;
     
     public SAT(String filename)
     {
         System.out.println("Min Conflicts");
-        collision = new HashMap<String,Integer>();
+        collision = new HashMap<String,Vector<Integer>>();
         csp = generateConstraints(filename);
         boolean sanity_check=true,result = false;
         sanity_check = preprocessing();
@@ -47,7 +47,7 @@ public class SAT {
 //        long max_steps = (long)(_numberOfVariables*Math.sqrt(_numberOfClauses));
 //        long max_steps = (long)(min_steps*0.16*Math.sqrt(_numberOfClauses));
         long max_steps = (long)(min_steps*min_steps*2);
-        System.out.println(_numberOfVariables+" "+_numberOfClauses+" "+max_steps);
+//        System.out.println(_numberOfVariables+" "+_numberOfClauses+" "+max_steps);
         max_steps = (max_steps<min_steps?min_steps:max_steps);
         System.out.println("Preprocessing Done.");
         
@@ -293,7 +293,7 @@ public class SAT {
             {
                 return true;
              }
-            if(index%500==0) System.out.println(index);
+//            if(index%500==0) System.out.println(index);
             int key = maxconflicts(conflicts);
             int val = assignments[key] ;
             val = (val+1)%2;
@@ -315,21 +315,27 @@ public class SAT {
         String conflict = Arrays.toString(conflicts).replace(", ", " ");
 //        System.out.println(conflict);
         int arr[] = {1,2,3,4};
-        if(collision.containsKey(conflict) && (collision.get(conflict)==index))
+        Vector<Integer> conflictIndex;
+        if(collision.containsKey(conflict) && (collision.get(conflict).contains(index)))
         {
         	int start_index=0;
-        	while(collision.containsKey(conflict) && (collision.get(conflict)==start_index))
+        	while(start_index<v.size() && collision.containsKey(conflict) && (collision.get(conflict).contains(start_index)))
         	{
         		start_index++;
         	}
-        	index=start_index;
-        	System.out.println(conflict);
-        	System.out.println(index+" "+collision.get(conflict));
+        	index= (start_index==v.size())?start_index-1:start_index;
+        	conflictIndex = collision.get(conflict);
+//        	System.out.println(conflict);
+//        	System.out.println(index+" "+collision.get(conflict));
         }
         else
         {
-        	collision.put(conflict, index);
+//        	collision.put(conflict, index);
+        	conflictIndex= new Vector<Integer>();
         }
+        conflictIndex.add(index);
+        collision.remove(conflict);
+        collision.put(conflict, conflictIndex);
         return (Integer)v.get(index);
     }
     
