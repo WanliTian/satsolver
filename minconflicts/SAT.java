@@ -32,6 +32,9 @@ public class SAT {
     int assignments[] ;
     int occurences[];
     boolean hardAssignment[];
+    
+    boolean restartFlag ;
+    int numberOfRestarts=0;
     CSP csp;
     
     HashMap<String, Vector<Integer>> collision;
@@ -40,13 +43,14 @@ public class SAT {
     {
         System.out.println("Min Conflicts");
         collision = new HashMap<String,Vector<Integer>>();
+        restartFlag=false;
         csp = generateConstraints(filename);
         boolean sanity_check=true,result = false;
         sanity_check = preprocessing();
         long min_steps = _numberOfClauses+_numberOfVariables;
 //        long max_steps = (long)(_numberOfVariables*Math.sqrt(_numberOfClauses));
-//        long max_steps = (long)(min_steps*0.16*Math.sqrt(_numberOfClauses));
-        long max_steps = (long)(min_steps*min_steps*2);
+        long max_steps = (long)(min_steps*0.16*Math.sqrt(_numberOfClauses));
+//        long max_steps = (long)(min_steps*min_steps*2);
 //        System.out.println(_numberOfVariables+" "+_numberOfClauses+" "+max_steps);
         max_steps = (max_steps<min_steps?min_steps:max_steps);
         System.out.println("Preprocessing Done.");
@@ -128,12 +132,21 @@ public class SAT {
     	return clauses;
     }
     
+    public void rand_assignment()
+    {
+    	for (int i = 0; i < _numberOfVariables; i++) {
+			assignments[i]=(int)(Math.random()*2);
+		}
+    }
+    
     public void initial_assignment()
     {
+    	occ occur[] = new occ[_numberOfVariables];
     	Clause clauses[] = csp.constraints;
     	for (int i = 0; i < _numberOfVariables; i++) {
 			occurences[i]=0;
 			hardAssignment[i]=false;
+			occur[i]= new occ();
 		}
     	for (int i = 0; i < clauses.length; i++) {
 			Clause clause = clauses[i];
@@ -141,6 +154,8 @@ public class SAT {
 				int var = clause.variable[j].key;
 				if(hardAssignment[abs(var)-1]) continue;
 				occurences[abs(var)-1] += (var>0)?1:-1;
+				occur[abs(var)-1].posCount += (var>0)?1:0;
+				occur[abs(var)-1].negCount += (var<0)?1:0;
 				if(clause.variable.length==1)
 				{
 					hardAssignment[abs(var)-1]=true;
@@ -153,6 +168,19 @@ public class SAT {
 				
 			}
 			
+		}
+    	
+    	for (int i = 0; i < _numberOfVariables; i++) {
+			occ o = occur[i];
+			if(o.posCount==0)
+			{
+				hardAssignment[i]=true;
+				assignments[i]=0;
+			}else if(o.negCount==0)
+			{
+				hardAssignment[i]=true;
+				assignments[i]=1;
+			}
 		}
     }
     public boolean preprocessing()
@@ -287,7 +315,7 @@ public class SAT {
         
         for(long index=0 ; index<max_steps;index++)
         {
-            initializeConflicts(conflicts);
+        	initializeConflicts(conflicts);
             boolean result = CheckResult(assignments, conflicts);
             if(result==true)
             {
@@ -295,11 +323,41 @@ public class SAT {
              }
 //            if(index%500==0) System.out.println(index);
             int key = maxconflicts(conflicts);
-            int val = assignments[key] ;
-            val = (val+1)%2;
-            assignments[key] = val;
+//            if(!restartFlag)
+//            {
+		        int val = assignments[key] ;
+		        val = (val+1)%2;
+		        assignments[key] = val;
+//            }
+//            else
+//            {
+////            	System.out.println("restarted");
+//            	collision.clear();
+//            	initial_assignment();
+//            	numberOfRestarts+=1;
+////            	assignRandomValueVariable(numberOfRestarts);
+//            	restartFlag=false;
+//            	if(2*numberOfRestarts>_numberOfVariables) return false;
+//            }
         }
         return false;
+    }
+    
+    public void assignRandomValueVariable(int count)
+    {
+    	Vector<Integer>  v = new Vector<Integer>();
+    	for (int i = 0; i <count; i++) {
+			int index = (int)(Math.random()*_numberOfVariables);
+			if(!v.contains(index)){
+			assignments[index] = (assignments[index]+1)%2;
+			v.add(index);
+			}
+			else
+			{
+				i--;
+				continue;
+			}
+		}
     }
     
     public int maxconflicts(int conflicts[])
@@ -311,10 +369,10 @@ public class SAT {
                 v.add(i);
             }
         }
+        if(v.size()==0) return 0;
         int index = (int)(Math.random()*v.size());
         String conflict = Arrays.toString(conflicts).replace(", ", " ");
 //        System.out.println(conflict);
-        int arr[] = {1,2,3,4};
         Vector<Integer> conflictIndex;
         if(collision.containsKey(conflict) && (collision.get(conflict).contains(index)))
         {
@@ -325,6 +383,7 @@ public class SAT {
         	}
         	index= (start_index==v.size())?start_index-1:start_index;
         	conflictIndex = collision.get(conflict);
+        	if(start_index==v.size()) restartFlag = true;
 //        	System.out.println(conflict);
 //        	System.out.println(index+" "+collision.get(conflict));
         }
@@ -495,4 +554,10 @@ class Clause
 {
     Variable variable[];
     boolean local_status = false;
+}
+
+class occ
+{
+	int posCount=0;
+	int negCount = 0;
 }
