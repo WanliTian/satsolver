@@ -151,12 +151,14 @@ public class sat {
 		}
     	return false;
     }
-    
+    int min_weight = 100000 , min_index = 0;
     public SymbolValuePair findPureSymbolPair(ArrayList<Clause> source,ArrayList<Integer> variables,Model m)
     {
     	SymbolValuePair svp = null;
     	int posCount[] = new int[_numberOfVariables];
     	int negCount[] = new int[_numberOfVariables];
+    	min_weight = 100000;
+    	min_index=0;
     	HashMap<Integer, SymbolValuePair> map = new HashMap<Integer,SymbolValuePair>();
     	for (int i = 0; i < source.size(); i++) {
 			Clause clause = source.get(i);
@@ -169,6 +171,7 @@ public class sat {
 				SymbolValuePair tsvp = new SymbolValuePair();
 				tsvp.key = (skey+1);
 				tsvp.value = (posCount[skey]>0)?1:0;
+				if(min_weight>(posCount[skey]+negCount[skey])){min_weight =posCount[skey]+negCount[skey]; min_index=skey; }
 				if(!variables.contains(new Integer(skey)) || m.assignments[skey]!=NO_VALUE) continue;
 				if((posCount[skey]==0 && negCount[skey]!=0) ||
 					(posCount[skey]!=0 && negCount[skey]==0) )
@@ -189,8 +192,6 @@ public class sat {
     public SymbolValuePair findUnitSymbolPair(ArrayList<Clause> source,ArrayList<Integer> variables,Model m)
     {
     	SymbolValuePair svp=null;
-    	int posCount[] = new int[_numberOfVariables];
-    	int negCount[] = new int[_numberOfVariables];
     	int index=NO_VALUE;
     	for (int i = 0; i < source.size(); i++) {
 			Clause clause =	source.get(i);
@@ -310,9 +311,9 @@ public class sat {
     		return dpll(temp,newmodel,var);
     	}
     	
-    	Integer v = vars.get(0);
+    	Integer v = vars.get(min_index);
     	ArrayList<Integer> newvar = copyVariables(vars);
-    	newvar.remove(0);
+    	newvar.remove(min_index);
     	if((dpll(source, m.extend(v+1, 1),newvar) == SATISFIABLE) )
     	{
     		assignments = m.assignments;
