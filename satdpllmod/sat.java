@@ -205,37 +205,37 @@ public class sat {
 		}
     	
     	
-    	// Type 2 - Unit propogation where all except the current variable is set and all else is false
-    	for (int i = 0; i < source.size(); i++) {
-			Clause clause =	source.get(i);
-			if(clause.variable.size()==1) continue;
-			if(isClauseTrueInModel(clause, m.assignments)!=UNDEFINED)
-			{
-				continue;
-			}
-			else
-			{
-				int count=0,var_index=0;
-				for(int ind=0;ind<clause.variable.size();ind++)
-				{
-					int key = clause.variable.get(ind).key;
-					int skey = abs(key)-1;
-					if(m.assignments[skey]==NO_VALUE)
-					{
-						count++;
-						var_index=ind;
-					}
-				}
-				if(count!=1) continue;
-				int key = clause.variable.get(var_index).key;
-				int skey = abs(key)-1;
-//				if(m.assignments[skey]!=NO_VALUE || !variables.contains(new Integer(skey))) continue;
-				svp = new SymbolValuePair();
-				svp.key = abs(key);
-				svp.value = (key>0)?1:0;
-				return svp;
-			}
-		}
+//    	// Type 2 - Unit propogation where all except the current variable is set and all else is false
+//    	for (int i = 0; i < source.size(); i++) {
+//			Clause clause =	source.get(i);
+//			if(clause.variable.size()==1) continue;
+//			if(isClauseTrueInModel(clause, m.assignments)!=UNDEFINED)
+//			{
+//				continue;
+//			}
+//			else
+//			{
+//				int count=0,var_index=0;
+//				for(int ind=0;ind<clause.variable.size();ind++)
+//				{
+//					int key = clause.variable.get(ind).key;
+//					int skey = abs(key)-1;
+//					if(m.assignments[skey]==NO_VALUE)
+//					{
+//						count++;
+//						var_index=ind;
+//					}
+//				}
+//				if(count!=1) continue;
+//				int key = clause.variable.get(var_index).key;
+//				int skey = abs(key)-1;
+////				if(m.assignments[skey]!=NO_VALUE || !variables.contains(new Integer(skey))) continue;
+//				svp = new SymbolValuePair();
+//				svp.key = abs(key);
+//				svp.value = (key>0)?1:0;
+//				return svp;
+//			}
+//		}
     	return svp;
     	
     }
