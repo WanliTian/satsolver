@@ -557,14 +557,13 @@ public class sat {
     public int conflict_analysis_firstUIP() {
     	  int min_conf_id = _conflicts.get(0);
     	  int min_conf_length = -1;
-    	  int cl;
     	  int gflag;
     	  _mark_increase_score = false;
     	  if (_conflicts.size() > 1) {
     	    for (int index=0;index<_conflicts.size;index++) {
 //    	      assert(_num_in_new_cl == 0);
 //    	      assert(dlevel() > 0);
-    	      Clause cl = ;
+    	      Clause cl = csp.constraints.get(_conflicts.get(index));
     	      mark_vars(cl, -1);
     	      // current dl must be the conflict cl.
     	      vector <int> & assignments = *_assignment_stack[dlevel()];
@@ -575,17 +574,17 @@ public class sat {
     	          // this variable is involved in the conflict clause or its antecedent
     	          variable(assigned>>1).clear_marked();
     	          --_num_marked;
-    	          ClauseIdx ante_cl = variable(assigned>>1).get_antecedent();
+    	          int ante_cl = variable(assigned>>1).get_antecedent();
     	          if ( _num_marked == 0 ) {
     	            // the first UIP encountered, conclude add clause
     	            assert(variable(assigned>>1).new_cl_phase() == UNKNOWN);
     	            // add this assignment's reverse, e.g. UIP
-    	            _conflict_lits.push_back(assigned ^ 0x1);
+    	            _conflict_lits.add(assigned ^ 0x1);
     	            ++_num_in_new_cl;
     	            variable(assigned>>1).set_new_cl_phase((assigned^0x1)&0x1);
     	            break;
     	          } else {
-    	            assert(ante_cl != NULL_CLAUSE);
+    	            assert(ante_cl != Variable.NULL_CLAUSE);
     	            mark_vars(ante_cl, assigned >> 1);
     	          }
     	        }

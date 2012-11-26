@@ -11,6 +11,7 @@ import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.PriorityQueue;
+import java.util.Set;
 import java.util.Vector;
 
 
@@ -41,7 +42,7 @@ public class sat {
     
     public sat(String filename)
     {
-	    System.out.println("DPLL");
+//	    System.out.println("DPLL");
 	    collision = new HashMap<String,Integer>();
 	    csp = generateConstraints(filename);
 	    MAX_WEIGHT = _numberOfClauses*_numberOfVariables;
@@ -54,7 +55,7 @@ public class sat {
 	        for(int index = 0 ; index < _numberOfVariables ; index++ )
 	        {
 	            value = index+1;
-	            value *= (assignments[index]==1)? 1 : -1;
+	            value *= ((assignments[index]==1)? 1 : -1);
 	            System.out.print(" "+value);
 	        }
 	        System.out.print(" 0");
@@ -102,6 +103,8 @@ public class sat {
         
     }
     
+    int dlevel = 0;
+    boolean next_loop = false;
     
     public int dpll(ArrayList<Clause> source)
     {
@@ -110,6 +113,9 @@ public class sat {
     	ArrayList<Clause> local = copy(source);
     	ArrayList<Clause> temp = copy(local);
     	boolean didChange = true;
+    	
+    	
+    	// unit literal
     	while(didChange)
     	{
     		didChange = false;
@@ -129,16 +135,102 @@ public class sat {
 			}
     		if(didChange) local = copy(temp);
     	}
+    	
+    	
+    	// pure phase literal
+    	
+    	int poscount[] = new int[_numberOfVariables];
+    	int negCount[] = new int[_numberOfVariables];
+    	for (int i = 0; i < temp.size(); i++) {
+    		Clause clause = temp.get(i);
+    		ArrayList<Variable> vars = new ArrayList<Variable>();
+        	for (Variable variable : clause.variable) {
+    			int sign = (variable.key>0)?1:0;
+    			if(sign==1)
+    			{
+    				poscount[abs(variable.key)-1]++;
+    			}
+    			else
+    			{
+    				negCount[abs(variable.key)-1]++;
+    			}
+    		}
+		}
+    	
+    	for (int i = 0; i < _numberOfVariables; i++) {
+    		didChange = false;
+    		Variable var = new Variable();
+			if(poscount[i]==0 && negCount[i]!=0)
+			{
+				var.key = (i+1)*-1;
+				temp = reduce(temp,var);
+			}
+			else if(poscount[i]!=0 && negCount[i]==0)
+			{
+				var.key = (i+1)*1;
+				temp = reduce(temp,var);
+			}
+			
+			if(didChange) local = copy(temp);
+			
+		}
+    	
+    	
     	// Step 2 basic check
     	if(local.size()==0) return SATISFIABLE;
 //    	System.out.println(local.size());
     	// Step 3: Branch
-    	Variable variable = chooseLiteral(local);
-//    	System.out.println(local.size()+" "+variable.key);
-    	if(dpll(reduce(source, variable))==SATISFIABLE) return SATISFIABLE;
-    	variable.key *=-1;
-    	if(dpll(reduce(source, variable))==SATISFIABLE) return SATISFIABLE;
+    	Variable variable;
+//    	if(!next_loop)
+//    	{
+    		variable = chooseLiteral(local);
+    		dlevel++;
+        	if(dpll(reduce(source, variable))==SATISFIABLE) return SATISFIABLE;
+        	dlevel--;
+        	variable.key *=-1;
+        	dlevel++;
+//        	d("2");
+        	if(dpll(reduce(source, variable))==SATISFIABLE) return SATISFIABLE;
+        	dlevel++;
+//        	d("3");
+//    	}else
+//    	{
+//    		ArrayList<Variable> varss = getVariablesinCSP(source);
+//    		for (int i = 0; i < varss.size(); i++) {
+//    			variable = varss.get(i);
+//    			dlevel++;
+//            	if(dpll(reduce(source, variable))==SATISFIABLE) return SATISFIABLE;
+//            	dlevel--;
+//            	variable.key *=-1;
+//            	dlevel++;
+//            	if(dpll(reduce(source, variable))==SATISFIABLE) return SATISFIABLE;
+//			}
+    		
+//    	}
 //    	d("2");
+//    	dlevel--;
+//    	if(dlevel==0)
+//    	{
+//    		Iterator<sort> s = sVars.iterator();
+//    		next_loop= true;
+//    		variable = new Variable();
+//    		while(s.hasNext())
+//    		{
+//    			System.out.println("Next loop");
+//    			dlevel++;
+//    			variable.key = s.next().key;
+//    	    	if(dpll(reduce(source, variable))==SATISFIABLE) return SATISFIABLE;
+//    	    	dlevel--;
+//    	    	variable.key *=-1;
+//    	    	dlevel++;
+//    	    	if(dpll(reduce(source, variable))==SATISFIABLE) return SATISFIABLE;
+//    	    	dlevel--;
+//    		}
+//    	}
+//    	else
+//    	{
+//    		
+//    	}
     	return UNSATISFIABLE;
     	
     }
@@ -155,8 +247,70 @@ public class sat {
     {
 //    	return chooseDLIS(source);
 //    	return chooseRAND(source);
-    	return chooseDLCS(source);
+//    	return chooseDLCS(source);
 //    	return chooseAUPC(source);
+    	return chooseMOM(source);
+    }
+    
+    public Variable chooseMOM(ArrayList<Clause> source)
+    {
+    	int max_len = 0;
+    	HashMap<Integer, Vector> map = new HashMap<Integer,Vector>();
+    	int max_size = 0 , max_var = 0;
+    	for (int i = 0; i < source.size(); i++) {
+			Clause clause = source.get(i);
+			if(max_len<clause.variable.size())
+			{
+				max_len = clause.variable.size();
+				map.clear();
+			}
+			
+			for(int index =0 ; index < clause.variable.size(); index++)
+			{
+				int key = clause.variable.get(index).key;
+				if(map.containsKey(abs(key)))
+				{
+					Vector size = map.get(abs(key));
+					map.remove(abs(key));
+					int sign = (key>0)?1:0;
+					size.set(sign, (Integer)size.get(sign)+1);
+					map.put(abs(key), size);
+					
+				}
+				else
+				{
+					Vector<Integer> size =new Vector<Integer>();
+					int sign = (key>0)?1:0;
+					if(sign==0)
+					{
+						size.add(0, 1);
+						size.add(1, 0);
+					}
+					else
+					{
+						size.add(0, 0);
+						size.add(1, 1);
+					}
+					map.put(abs(key), size);
+				}
+				
+				Vector<Integer> size = map.get(abs(key));
+				if(max_size<size.get(0)+size.get(1))
+				{
+					max_size = size.get(0)+size.get(1);
+					if(size.get(0)>size.get(1))
+					{
+						max_var = abs(key)*-1;
+					}else
+					{
+						max_var = abs(key)*1;
+					}
+				}
+			}
+		}
+    	Variable var = new Variable();
+		var.key = max_var;
+		return var;
     }
     
     public Variable chooseRAND(ArrayList<Clause> source)
@@ -222,7 +376,8 @@ public class sat {
 		}
     	return max;
     }
-    
+    Vector<sort> sVars = new Vector<sort>();
+    boolean bVars  = true;
     public Variable chooseDLCS(ArrayList<Clause> source)
     {
     	int max_weight = 0;
@@ -242,6 +397,13 @@ public class sat {
 		for (int i = 0; i < _numberOfVariables; i++) {
 			int neg = negativeCount[i];
 			int pos = positiveCount[i];
+			if(dlevel==0 && bVars)
+			{
+				sort s= new sort();
+				s.key = i+1;
+				s.weight = neg+pos;
+				sVars.add(s);
+			}
 			if(max_weight<(neg+pos))
 			{
 				keys.clear();
@@ -257,6 +419,7 @@ public class sat {
 		}
 //		int index = (int)(Math.random()*keys.size());
 //    	max.key = keys.get(index);
+		if(dlevel==0) bVars =false;
     	return max;
     }
     
@@ -320,7 +483,9 @@ public class sat {
 				else
 				{
 					map.put(abs(variable.key), abs(variable.key));
-					variables.add(variable);
+					Variable temp = new Variable();
+					temp.key = abs(variable.key);
+					variables.add(temp);
 				}
 			}
 		}
@@ -339,15 +504,16 @@ public class sat {
     {
     	int clause_index = 0 ;
     	ArrayList<Clause> local = copy(source);
+    	ArrayList<Clause> temp = copy(source);
     	assignVariable(variable);
-    	for (Clause clause : source) {
+    	for (Clause clause : local) {
 			if((clauseContainsVariable(clause,variable)==VariableInClause))
 			{
-				local.remove(clause);
+				temp.remove(clause_index);
 			}else if((clauseContainsVariable(clause,variable)==VariableNegationInClause))
 			{
 				clause = removeVariableFromClause(clause,variable);
-				local.set(clause_index, clause);
+				temp.set(clause_index, clause);
 				clause_index++;
 			}else
 			{
@@ -356,7 +522,7 @@ public class sat {
 			}
 			
 		}
-    	return local;
+    	return temp;
     }
     
     
@@ -389,7 +555,16 @@ public class sat {
     {
     	ArrayList<Clause> local = new ArrayList<Clause>(source.size());
     	for (Iterator iterator = source.iterator(); iterator.hasNext();) {
-			Clause clause = (Clause) iterator.next();
+			Clause clause = new Clause();
+			clause.variable = new ArrayList<Variable>();
+			Clause cls = (Clause)iterator.next();
+			for(int i=0; i<cls.variable.size();i++)
+			{
+				Variable var = new Variable();
+				int key = cls.variable.get(i).key;
+				var.key = key;
+				clause.variable.add(var);
+			}
 			local.add(clause);
 		}
     	return local;
@@ -417,7 +592,9 @@ public class sat {
         csp.constraints = new ArrayList<Clause>(_numberOfClauses);
         int clause_index = 0;
         for (Iterator<String> it = clauses.iterator(); it.hasNext();) {
+        	
             String string = it.next();
+            
             String split[] = string.split(" ");
             Clause clause = new Clause();
             clause.variable = new ArrayList<Variable>(split.length-1); // last 0 is not counted
@@ -511,4 +688,24 @@ class Clause
 {
     ArrayList<Variable> variable;
     boolean local_status = false;
+}
+
+class sort implements Comparable{
+	int key;
+	int weight;
+
+	@Override
+	public int compareTo(Object o) {
+		// TODO Auto-generated method stub
+		sort s2 = (sort)o;
+		if(this.weight>s2.weight)
+		{
+			return 1;
+		}
+		else
+		{
+			return 0;
+		}
+	}
+	
 }
