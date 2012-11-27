@@ -46,7 +46,7 @@ public class sat {
 	    collision = new HashMap<String,Integer>();
 	    csp = generateConstraints(filename);
 	    MAX_WEIGHT = _numberOfClauses*_numberOfVariables;
-	    boolean sanity_check=true,result = false;
+	    boolean result = false;
     	result = (dpll(csp.constraints)==SATISFIABLE);
 	    if(result){
 	        System.out.println("s Satisfiable");
@@ -108,13 +108,11 @@ public class sat {
     
     public int dpll(ArrayList<Clause> source)
     {
-    	
+//    	System.out.println(source.size()+" #");
     	//Step 1 reduce
     	ArrayList<Clause> local = copy(source);
     	ArrayList<Clause> temp = copy(local);
     	boolean didChange = true;
-    	
-    	
     	// unit literal
     	while(didChange)
     	{
@@ -123,7 +121,6 @@ public class sat {
 				Clause clause = (Clause) iterator.next();
 				if(clause.variable.size()==0)
 				{
-//					d("1");
 					return UNSATISFIABLE;
 				}
 				else if(clause.variable.size()==1)
@@ -133,7 +130,9 @@ public class sat {
 					break;
 				}
 			}
-    		if(didChange) local = copy(temp);
+    		if(didChange) {
+    			local = copy(temp);
+    		}
     	}
     	
     	
@@ -164,23 +163,29 @@ public class sat {
 			{
 				var.key = (i+1)*-1;
 				temp = reduce(temp,var);
+				didChange = true;
 			}
 			else if(poscount[i]!=0 && negCount[i]==0)
 			{
 				var.key = (i+1)*1;
 				temp = reduce(temp,var);
+				didChange = true;
 			}
 			
-			if(didChange) local = copy(temp);
+			if(didChange) 
+			{
+				local = copy(temp);
+			}
 			
 		}
     	
-    	
+//    	
     	// Step 2 basic check
     	if(local.size()==0) return SATISFIABLE;
     	// Step 3: Branch
     	Variable variable;
 		variable = chooseLiteral(local);
+//		
     	if(dpll(reduce(local, variable))==SATISFIABLE) return SATISFIABLE;
     	variable.key *=-1;
     	if(dpll(reduce(local, variable))==SATISFIABLE) return SATISFIABLE;
@@ -465,8 +470,9 @@ public class sat {
 				temp.remove(clause_index);
 			}else if((clauseContainsVariable(clause,variable)==VariableNegationInClause))
 			{
-				clause = removeVariableFromClause(clause,variable);
-				temp.set(clause_index, clause);
+				Clause cls = temp.get(clause_index);
+				cls = removeVariableFromClause(cls,variable);
+				temp.set(clause_index, cls);
 				clause_index++;
 			}else
 			{

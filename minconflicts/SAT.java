@@ -187,18 +187,7 @@ public class SAT {
     {
     	initial_assignment();
     	boolean result = true;
-//    	while(result)
-//    	{
-//    		int change=optimization2();
-//    		if(optimization1()==NO_MORE_MOVES && change == NO_CHANGE)
-//    		{
-//    			return true;
-//    		}
-//    		else if(optimization1()==CONFLICT_DETECTED)
-//    		{
-//    			return false;
-//    		}
-//    	}
+    	
     	return result;
     }
     
