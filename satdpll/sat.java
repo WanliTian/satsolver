@@ -178,61 +178,13 @@ public class sat {
     	
     	// Step 2 basic check
     	if(local.size()==0) return SATISFIABLE;
-//    	System.out.println(local.size());
     	// Step 3: Branch
     	Variable variable;
-//    	if(!next_loop)
-//    	{
-    		variable = chooseLiteral(local);
-    		dlevel++;
-        	if(dpll(reduce(source, variable))==SATISFIABLE) return SATISFIABLE;
-        	dlevel--;
-        	variable.key *=-1;
-        	dlevel++;
-//        	d("2");
-        	if(dpll(reduce(source, variable))==SATISFIABLE) return SATISFIABLE;
-        	dlevel++;
-//        	d("3");
-//    	}else
-//    	{
-//    		ArrayList<Variable> varss = getVariablesinCSP(source);
-//    		for (int i = 0; i < varss.size(); i++) {
-//    			variable = varss.get(i);
-//    			dlevel++;
-//            	if(dpll(reduce(source, variable))==SATISFIABLE) return SATISFIABLE;
-//            	dlevel--;
-//            	variable.key *=-1;
-//            	dlevel++;
-//            	if(dpll(reduce(source, variable))==SATISFIABLE) return SATISFIABLE;
-//			}
-    		
-//    	}
-//    	d("2");
-//    	dlevel--;
-//    	if(dlevel==0)
-//    	{
-//    		Iterator<sort> s = sVars.iterator();
-//    		next_loop= true;
-//    		variable = new Variable();
-//    		while(s.hasNext())
-//    		{
-//    			System.out.println("Next loop");
-//    			dlevel++;
-//    			variable.key = s.next().key;
-//    	    	if(dpll(reduce(source, variable))==SATISFIABLE) return SATISFIABLE;
-//    	    	dlevel--;
-//    	    	variable.key *=-1;
-//    	    	dlevel++;
-//    	    	if(dpll(reduce(source, variable))==SATISFIABLE) return SATISFIABLE;
-//    	    	dlevel--;
-//    		}
-//    	}
-//    	else
-//    	{
-//    		
-//    	}
+		variable = chooseLiteral(local);
+    	if(dpll(reduce(local, variable))==SATISFIABLE) return SATISFIABLE;
+    	variable.key *=-1;
+    	if(dpll(reduce(local, variable))==SATISFIABLE) return SATISFIABLE;
     	return UNSATISFIABLE;
-    	
     }
     
     public void assignVariable(Variable variable)
@@ -259,7 +211,7 @@ public class sat {
     	int max_size = 0 , max_var = 0;
     	for (int i = 0; i < source.size(); i++) {
 			Clause clause = source.get(i);
-			if(max_len<clause.variable.size())
+			if(max_len>clause.variable.size())
 			{
 				max_len = clause.variable.size();
 				map.clear();
@@ -283,21 +235,22 @@ public class sat {
 					int sign = (key>0)?1:0;
 					if(sign==0)
 					{
-						size.add(0, 1);
-						size.add(1, 0);
+						size.add(0, 2);
+						size.add(1, 1);
 					}
 					else
 					{
-						size.add(0, 0);
-						size.add(1, 1);
+						size.add(0, 1);
+						size.add(1, 2);
 					}
 					map.put(abs(key), size);
 				}
 				
 				Vector<Integer> size = map.get(abs(key));
-				if(max_size<size.get(0)+size.get(1))
+				int val = size.get(0)+size.get(1);//+size.get(0)*size.get(1);
+				if(max_size<val)
 				{
-					max_size = size.get(0)+size.get(1);
+					max_size = val;
 					if(size.get(0)>size.get(1))
 					{
 						max_var = abs(key)*-1;
@@ -604,7 +557,6 @@ public class sat {
                 if(value==0) break;
                 Variable var = new Variable();
                 var.key = value;
-//                clause.variable.set(variable_index,var);
                 clause.variable.add(var);
                 variable_index++;
             }
