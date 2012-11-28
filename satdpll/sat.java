@@ -42,12 +42,13 @@ public class sat {
     
     public sat(String filename)
     {
-	    System.out.println("DPLL");
+//	    System.out.println("DPLL");
 	    collision = new HashMap<String,Integer>();
 	    csp = generateConstraints(filename);
 //	    MAX_WEIGHT = _numberOfClauses*_numberOfVariables;
 	    boolean result = false;
     	result = (dpll(csp.constraints)==SATISFIABLE);
+    	System.out.println("c Solution for previous problem");
 	    if(result){
 	        System.out.println("s Satisfiable");
 	        int value = 0;
@@ -253,7 +254,7 @@ public class sat {
 					Vector size = map.get(abs(key));
 					map.remove(abs(key));
 					int sign = (key>0)?1:0;
-					int getCount = (int)size.get(sign);
+					int getCount = (Integer)size.get(sign);
 					size.set(sign, getCount+1);
 					map.put(abs(key), size);
 					
