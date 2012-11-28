@@ -109,55 +109,58 @@ public class sat {
     
     public void print(ArrayList<Clause> source)
     {
-//    	for(int index=0;index<source.size();index++)
-//    	{
-//    		Clause cls = source.get(index);
-//    		ArrayList<Integer> vars =cls.variable;
-//    		System.out.print("[");
-//    		for(int i=0;i<vars.size();i++)
-//    		{
-//    			System.out.print(vars.get(i)+",");
-//    		}
-//    		System.out.print("] ");
-//    		
-//    	}
-//    	System.out.println();
+    	for(int index=0;index<source.size();index++)
+    	{
+    		Clause cls = source.get(index);
+    		ArrayList<Integer> vars =cls.variable;
+    		System.out.print("[");
+    		for(int i=0;i<vars.size();i++)
+    		{
+    			System.out.print(vars.get(i)+",");
+    		}
+    		System.out.print("] ");
+    		
+    	}
+    	System.out.println();
     }
     
     public int dpll(ArrayList<Clause> source)
     {
 //    	System.out.println(source.size()+" #");
     	//Step 1 reduce
-    	ArrayList<Clause> local = copy(source);
-    	ArrayList<Clause> temp = copy(local);
+//    	ArrayList<Clause> local = copy(source);
+    	ArrayList<Clause> temp = copy(source);
     	boolean didChange = true;
     	// unit literal
 //    	System.out.println("Main");
-    	print(local);
-    	while(didChange)
+//    	print(temp);
+    	int clause_index = 0;
+    	while(clause_index < temp.size())
     	{
-    		didChange = false;
-    		for (Iterator iterator = local.iterator(); iterator.hasNext();) {
-				Clause clause = (Clause) iterator.next();
+//    		didChange = false;
+//    		for (Iterator iterator = local.iterator(); iterator.hasNext();) {
+				Clause clause = temp.get(clause_index);
+				clause_index++;
 				if(clause.variable.size()==0)
 				{
 					return UNSATISFIABLE;
 				}
 				else if(clause.variable.size()==1)
 				{
-					didChange = true;
+//					didChange = true;
 					temp = reduce(temp,clause.variable.get(0));
-					break;
+					clause_index=0;
+//					break;
 				}
-			}
-    		if(didChange) {
-    			local = copy(temp);
-    		}
+//			}
+//    		if(didChange) {
+//    			local = copy(temp);
+//    		}
     	}
     	
 //    	System.out.println("After unit literal");
-    	print(local);
-    	
+//    	print(temp);
+//    	
     	int poscount[] = new int[_numberOfVariables];
     	int negCount[] = new int[_numberOfVariables];
     	for (int i = 0; i < temp.size(); i++) {
@@ -192,25 +195,25 @@ public class sat {
 			}
 		}
     	
-    	if(didChange) 
-		{
-			local = copy(temp);
-		}
+//    	if(didChange) 
+//		{
+//			local = copy(temp);
+//		}
 //    	
 //    	System.out.println("After pure literal");
-    	print(local);
+//    	print(temp);
 //    	System.out.println(local.toString());
     	// Step 2 basic check
-    	if(local.size()==0) return SATISFIABLE;
+    	if(temp.size()==0) return SATISFIABLE;
     	// Step 3: Branch
     	int variable;
-		variable = chooseLiteral(local);
+		variable = chooseLiteral(temp);
 //		
 //		System.out.println(variable+"@");
-//		System.out.println(variable.key);
-    	if(dpll(reduce(local, variable))==SATISFIABLE) return SATISFIABLE;
+//		System.out.println(variable);
+    	if(dpll(reduce(temp, variable))==SATISFIABLE) return SATISFIABLE;
     	variable *=-1;
-    	if(dpll(reduce(local, variable))==SATISFIABLE) return SATISFIABLE;
+    	if(dpll(reduce(temp, variable))==SATISFIABLE) return SATISFIABLE;
     	return UNSATISFIABLE;
     }
     
@@ -540,16 +543,15 @@ public class sat {
     public ArrayList<Clause> reduce(ArrayList<Clause> source,int variable)
     {
     	int clause_index = 0 ;
-    	ArrayList<Clause> local = copy(source);
     	ArrayList<Clause> temp = copy(source);
     	assignVariable(variable);
-    	for (Clause clause : local) {
+    	for (; clause_index < temp.size() ; ) {
+    		Clause clause = temp.get(clause_index);
 			if((clauseContainsVariable(clause,variable)==VariableInClause))
 			{
 				temp.remove(clause_index);
 			}else if((clauseContainsVariable(clause,variable)==VariableNegationInClause))
 			{
-//				Clause cls = temp.get(clause_index);
 				clause = removeVariableFromClause(clause,variable);
 				temp.set(clause_index, clause);
 				clause_index++;
