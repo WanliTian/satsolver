@@ -295,6 +295,62 @@ public class sat {
 		return max_var;
     }
     
+    public int chooseJW(ArrayList<Clause> source)
+    {
+    	HashMap<Integer, Vector> map = new HashMap<Integer,Vector>();
+    	int max_size = 0 , max_var = 0;
+    	for (int i = 0; i < source.size(); i++) {
+			Clause clause = source.get(i);
+			for(int index =0 ; index < clause.variable.size(); index++)
+			{
+				int cls_size = clause.variable.size();
+				int key = clause.variable.get(index);
+				if(map.containsKey(abs(key)))
+				{
+					Vector size = map.get(abs(key));
+					map.remove(abs(key));
+					int sign = (key>0)?1:0;
+					int getCount = (Integer)size.get(sign)*((int)(Math.pow(2, -cls_size)));
+					size.set(sign, getCount+1);
+					map.put(abs(key), size);
+				}
+				else
+				{
+					Vector<Integer> size =new Vector<Integer>();
+					int sign = (key>0)?1:0;
+					int yes = 2, no = 1;
+					yes *= ((int)(Math.pow(2, -cls_size)));
+					no *= ((int)(Math.pow(2, -cls_size)));
+					if(sign==0)
+					{
+						size.add(0,yes);
+						size.add(1,no);
+					}
+					else
+					{
+						size.add(0,no);
+						size.add(1,yes);
+					}
+					map.put(abs(key), size);
+				}
+				
+				Vector<Integer> size = map.get(abs(key));
+				int val = size.get(0)+size.get(1);//+size.get(0)*size.get(1);
+				if(max_size<val)
+				{
+					max_size = val;
+					if(size.get(0)>=size.get(1))
+					{
+						max_var = abs(key)*-1;
+					}else
+					{
+						max_var = abs(key)*1;
+					}
+				}
+			}
+		}
+		return max_var;
+    }
 //    public Variable chooseRAND(ArrayList<Clause> source)
 //    {
 //    	ArrayList<Variable> vars = getVariablesinCSP(source);
@@ -358,8 +414,8 @@ public class sat {
 //		}
 //    	return max;
 //    }
-    Vector<sort> sVars = new Vector<sort>();
-    boolean bVars  = true;
+//    Vector<sort> sVars = new Vector<sort>();
+//    boolean bVars  = true;
 //    public Variable chooseDLCS(ArrayList<Clause> source)
 //    {
 //    	int max_weight = 0;
@@ -661,24 +717,4 @@ class Clause
 {
     ArrayList<Integer> variable;
     boolean local_status = false;
-}
-
-class sort implements Comparable{
-	int key;
-	int weight;
-
-	@Override
-	public int compareTo(Object o) {
-		// TODO Auto-generated method stub
-		sort s2 = (sort)o;
-		if(this.weight>s2.weight)
-		{
-			return 1;
-		}
-		else
-		{
-			return 0;
-		}
-	}
-	
 }
