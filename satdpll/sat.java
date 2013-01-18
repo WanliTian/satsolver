@@ -48,7 +48,7 @@ public class sat {
 //	    MAX_WEIGHT = _numberOfClauses*_numberOfVariables;
 	    boolean result = false;
     	result = (dpll(csp.constraints)==SATISFIABLE);
-    	System.out.println("c Solution for previous problem");
+    	System.out.println("c Solution");
 	    if(result){
 	        System.out.println("s Satisfiable");
 	        int value = 0;
@@ -63,7 +63,7 @@ public class sat {
 	        System.out.println();
 	    }
 	    else {
-	        System.out.println("Unsatisfiable");
+	        System.out.println("s Unsatisfiable");
 	    }
 	}
 	public boolean CheckResult(int assignment[],int conflicts[])
@@ -109,36 +109,30 @@ public class sat {
     
     public void print(ArrayList<Clause> source)
     {
-    	for(int index=0;index<source.size();index++)
-    	{
-    		Clause cls = source.get(index);
-    		ArrayList<Integer> vars =cls.variable;
-    		System.out.print("[");
-    		for(int i=0;i<vars.size();i++)
-    		{
-    			System.out.print(vars.get(i)+",");
-    		}
-    		System.out.print("] ");
-    		
-    	}
-    	System.out.println();
+//    	for(int index=0;index<source.size();index++)
+//    	{
+//    		Clause cls = source.get(index);
+//    		ArrayList<Integer> vars =cls.variable;
+//    		System.out.print("[");
+//    		for(int i=0;i<vars.size();i++)
+//    		{
+//    			System.out.print(vars.get(i)+",");
+//    		}
+//    		System.out.print("] ");
+//    		
+//    	}
+//    	System.out.println();
     }
     
     public int dpll(ArrayList<Clause> source)
     {
-//    	System.out.println(source.size()+" #");
     	//Step 1 reduce
-//    	ArrayList<Clause> local = copy(source);
     	ArrayList<Clause> temp = copy(source);
     	boolean didChange = true;
     	// unit literal
-//    	System.out.println("Main");
-//    	print(temp);
     	int clause_index = 0;
     	while(clause_index < temp.size())
     	{
-//    		didChange = false;
-//    		for (Iterator iterator = local.iterator(); iterator.hasNext();) {
 				Clause clause = temp.get(clause_index);
 				clause_index++;
 				if(clause.variable.size()==0)
@@ -147,19 +141,12 @@ public class sat {
 				}
 				else if(clause.variable.size()==1)
 				{
-//					didChange = true;
 					temp = reduce(temp,clause.variable.get(0));
 					clause_index=0;
-//					break;
 				}
-//			}
-//    		if(didChange) {
-//    			local = copy(temp);
-//    		}
+
     	}
     	
-//    	System.out.println("After unit literal");
-//    	print(temp);
 //    	
     	int poscount[] = new int[_numberOfVariables];
     	int negCount[] = new int[_numberOfVariables];
@@ -195,22 +182,12 @@ public class sat {
 			}
 		}
     	
-//    	if(didChange) 
-//		{
-//			local = copy(temp);
-//		}
-//    	
-//    	System.out.println("After pure literal");
-//    	print(temp);
-//    	System.out.println(local.toString());
     	// Step 2 basic check
     	if(temp.size()==0) return SATISFIABLE;
     	// Step 3: Branch
     	int variable;
 		variable = chooseLiteral(temp);
 //		
-//		System.out.println(variable+"@");
-//		System.out.println(variable);
     	if(dpll(reduce(temp, variable))==SATISFIABLE) return SATISFIABLE;
     	variable *=-1;
     	if(dpll(reduce(temp, variable))==SATISFIABLE) return SATISFIABLE;
@@ -295,6 +272,7 @@ public class sat {
 			}
 		}
     	}
+    	
 		return max_var;
     }
     
@@ -354,12 +332,12 @@ public class sat {
 		}
 		return max_var;
     }
-//    public Variable chooseRAND(ArrayList<Clause> source)
-//    {
-//    	ArrayList<Variable> vars = getVariablesinCSP(source);
-//    	int index = (int)(Math.random()*vars.size());
-//    	return vars.get(index);
-//    }
+    public int chooseRAND(ArrayList<Clause> source)
+    {
+    	ArrayList<Integer> vars = getVariablesinCSP(source);
+    	int index = (int)(Math.random()*vars.size());
+    	return vars.get(index);
+    }
 //    
 //    public Variable chooseAUPC(ArrayList<Clause> source)
 //    {
@@ -704,7 +682,7 @@ public class sat {
     
 	public static void main(String[] args) {
 		// TODO Auto-generated method stub
-
+		new sat(args[0]);
 	}
 
 }
